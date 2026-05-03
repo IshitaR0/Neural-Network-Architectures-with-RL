@@ -53,15 +53,11 @@ CONFIG = {
     "embedding_dim": 8,
     "controller_lr": 0.0006,  # Adam lr from the paper
     # NAS loop
-    # The paper samples m architectures per batch, trains all of them,
-    # then does ONE controller update using the average gradient.
-    # Paper uses m=8 per controller replica. On a single Kaggle GPU,
-    # m=5 is a reasonable tradeoff between stability and speed.
     "num_batches": 20,  # how many controller update steps to do
     # total architectures trained = num_batches * m
-    "m": 5,  # architectures per batch (paper uses 8)
+    "m": 5,  # architectures per batch (paper uses 8) 
     # Child network training
-    "child_epochs": 50,  # paper uses 50
+    "child_epochs": 50,  # paper uses 50 
     "batch_size": 128,
     # REINFORCE baseline
     "baseline_decay": 0.95,  # exponential moving average decay
@@ -69,7 +65,6 @@ CONFIG = {
     # Entropy regularisation
     # Adds a small bonus to the loss proportional to entropy of the
     # controller's distributions. Encourages exploration early in training.
-    # Paper doesn't specify a value — 0.0001 is a common small default.
     "entropy_coeff": 0.0001,
     # Misc
     "seed": 42,
@@ -85,8 +80,14 @@ def run_nas():
 
     # ── SETUP ─────────────────────────────────────────────────────────────
     torch.manual_seed(CONFIG["seed"])
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"Using device: {device}")
+
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+    # elif torch.backends.mps.is_available():
+    #     device = torch.device("mps")
+    else:
+        device = torch.device("cpu")
+    print(f"Using Device: {device}")
 
     os.makedirs(CONFIG["log_dir"], exist_ok=True)
 
@@ -276,7 +277,14 @@ def run_nas():
 
         # Save checkpoint if this batch contained the best arch so far
         if best_architecture in batch_configs:
-            _save_checkpoint(controller, history, CONFIG, arch_count, best_model_state)
+            _save_checkpoint(
+                controller,
+                CONFIG,
+                arch_count,
+                best_model_state,
+                best_architecture,
+                best_val_acc,
+            )
 
     # ─────────────────────────────────────────────────────────────────────
     # FINAL REPORT
@@ -295,21 +303,24 @@ def run_nas():
         json.dump(history, f, indent=2)
     print(f"Full history saved to {history_path}")
 
-    return best_architecture, history, best_val_acc
+    return best_architecture, history, best_val_acc, device
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # CHECKPOINT
 # ─────────────────────────────────────────────────────────────────────────────
 
-def _save_checkpoint(controller, history, config, arch_idx, best_model_state):
+
+def _save_checkpoint(
+    controller, config, arch_idx, best_model_state, best_architecture, best_val_acc
+):
     """Save controller weights + best architecture found so far."""
     path = os.path.join(config["log_dir"], "best_checkpoint.pt")
     torch.save({
         "arch_idx"          : arch_idx + 1,
         "controller_state"  : controller.state_dict(),
-        "best_architecture" : history[-1]["layer_configs"],
-        "best_val_acc"      : history[-1]["val_acc"],
+        "best_architecture" : best_architecture,
+        "best_val_acc"      : best_val_acc,
         "best_model_state"  : best_model_state,
         "config"            : config,
     }, path)
@@ -322,9 +333,7 @@ def _save_checkpoint(controller, history, config, arch_idx, best_model_state):
 
 if __name__ == "__main__":
 
-    best_arch, history, nas_best_val_acc = run_nas()
-
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    best_arch, history, nas_best_val_acc, device = run_nas()
 
     _, _, test_loader = get_dataloaders(
         batch_size=CONFIG["batch_size"], num_workers=0

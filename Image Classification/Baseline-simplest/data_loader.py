@@ -12,9 +12,10 @@ Split:
 """
 
 import torch
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader, random_split, Dataset
 from torchvision import datasets, transforms
-
+from datasets import load_dataset
+from PIL import Image
 
 # ─────────────────────────────────────────────────────────────────────────────
 # TRANSFORMS
@@ -66,28 +67,47 @@ eval_transform = transforms.Compose([
     transforms.Normalize(CIFAR10_MEAN, CIFAR10_STD),
 ])
 
+class HFCifar10Dataset(Dataset):
+    """Wraps a HuggingFace CIFAR-10 split into a PyTorch Dataset."""
+
+    def __init__(self, hf_split, transform=None):
+        self.data = hf_split
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        item = self.data[idx]
+        image = item['img']
+        if not isinstance(image, Image.Image):
+            image = Image.fromarray(image)
+        label = item['label']
+        if self.transform:
+            image = self.transform(image)
+        return image, label
 
 # ─────────────────────────────────────────────────────────────────────────────
 # GET DATALOADERS
 # ─────────────────────────────────────────────────────────────────────────────
 
 def get_dataloaders(
-    data_dir: str = "./data",
     batch_size: int = 128,
     val_size: int = 5000,
-    num_workers: int = 2,
+    num_workers: int = 0,
     seed: int = 42,
+    **kwargs,
 ):
+    
+    print("Loading CIFAR-10 from HuggingFace...")
+    hf_dataset = load_dataset("uoft-cs/cifar10")
     """
-    Download CIFAR-10 and return three DataLoaders: train, val, test.
-
     The paper holds out 5,000 examples from the training set as the
     validation set. The remaining 45,000 are used for training.
     The test set (10,000 examples) is never touched during NAS.
 
     Parameters
     ----------
-    data_dir    : str   where to download/cache the dataset
     batch_size  : int   mini-batch size (128 is standard for CIFAR-10)
     val_size    : int   number of training images to reserve for validation
     num_workers : int   parallel data loading workers (2 is safe for Kaggle)
@@ -110,12 +130,10 @@ def get_dataloaders(
     # validation images would also get augmented — we don't want that.
     # The cleanest fix is two dataset objects sharing the same split indices.
 
-    full_train_aug  = datasets.CIFAR10(
-        root=data_dir, train=True, download=True, transform=train_transform
-    )
-    full_train_eval = datasets.CIFAR10(
-        root=data_dir, train=True, download=True, transform=eval_transform
-    )
+
+    full_train_aug  = HFCifar10Dataset(hf_dataset['train'], transform=train_transform)
+    full_train_eval = HFCifar10Dataset(hf_dataset['train'], transform=eval_transform)
+
 
     # ── SPLIT INTO TRAIN / VAL ────────────────────────────────────────────
     total = len(full_train_aug)           # 50,000
@@ -132,40 +150,20 @@ def get_dataloaders(
 
     # Build the val subset with the eval transform using the SAME indices.
     # Grab the indices that random_split assigned to the val subset.
-    val_indices = val_subset.indices
-    val_subset_eval = torch.utils.data.Subset(full_train_eval, val_indices)
+    val_subset_eval = torch.utils.data.Subset(full_train_eval, val_subset.indices)
 
     # ── TEST SET ──────────────────────────────────────────────────────────
-    test_dataset = datasets.CIFAR10(
-        root=data_dir, train=False, download=True, transform=eval_transform
-    )
+    test_dataset    = HFCifar10Dataset(hf_dataset['test'],  transform=eval_transform)
+
 
     # ── WRAP IN DATALOADERS ───────────────────────────────────────────────
-    #
     # shuffle=True  for training: different order each epoch helps generalisation
     # shuffle=False for val/test: order doesn't matter, just want accuracy
     # pin_memory=True: speeds up CPU->GPU transfers (no-op if using CPU only)
-    train_loader = DataLoader(
-        train_subset,
-        batch_size=batch_size,
-        shuffle=True,
-        num_workers=num_workers,
-        pin_memory=True,
-    )
-    val_loader = DataLoader(
-        val_subset_eval,
-        batch_size=batch_size,
-        shuffle=False,
-        num_workers=num_workers,
-        pin_memory=True,
-    )
-    test_loader = DataLoader(
-        test_dataset,
-        batch_size=batch_size,
-        shuffle=False,
-        num_workers=num_workers,
-        pin_memory=True,
-    )
+
+    train_loader = DataLoader(train_subset,    batch_size=batch_size, shuffle=True,  num_workers=num_workers, pin_memory=False)
+    val_loader   = DataLoader(val_subset_eval, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=False)
+    test_loader  = DataLoader(test_dataset,    batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=False)
 
     print(f"Dataset split:")
     print(f"  Train : {len(train_subset):,} images")

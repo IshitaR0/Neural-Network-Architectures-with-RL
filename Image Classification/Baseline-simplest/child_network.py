@@ -216,7 +216,7 @@ def train_child(
     train_loader,
     val_loader,
     num_epochs: int = 50,
-    device: torch.device = torch.device("cpu"),
+    device: torch.device = None,
 ) -> float:
     """
     Build, train, and evaluate one child network. Returns the reward signal
@@ -243,6 +243,14 @@ def train_child(
     """
 
     # ── BUILD THE CHILD NETWORK ───────────────────────────────────────────
+    if device is None:
+        if torch.cuda.is_available():
+            device = torch.device("cuda")
+        # elif torch.backends.mps.is_available():
+        #     device = torch.device("mps")
+        else:
+            device = torch.device("cpu")
+
     model = ChildNetwork(layer_configs=layer_configs).to(device)
 
     # ── LOSS FUNCTION ─────────────────────────────────────────────────────
@@ -363,7 +371,12 @@ def _evaluate(model, loader, device) -> float:
 
 if __name__ == "__main__":
 
-    device = torch.device("cpu")
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+    # elif torch.backends.mps.is_available():
+    #     device = torch.device("mps")
+    else:
+        device = torch.device("cpu")
 
     # Simulate what the controller would output after decode()
     dummy_configs = [
