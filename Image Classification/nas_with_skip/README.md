@@ -62,13 +62,13 @@ pip install torch torchvision datasets pillow matplotlib
 **Run the full NAS search + final test evaluation:**
 
 ```bash
-python nas.py
+python run.py
 ```
 
 **Run the search only (skip final test retraining):**
 
 ```bash
-python nas.py --skip-test
+python run.py --skip-test
 ```
 
 ---
