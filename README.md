@@ -14,7 +14,7 @@ A controller LSTM learns to generate neural network architectures by treating ar
 ## Results
 
 - **Best val accuracy (during NAS):** 74.98%
-- **Test accuracy:** 73.40%
+- **Test accuracy:** 74.70%
 - **Architectures explored:** 100 (20 batches × 5 per batch)
 - **Best architecture found:**
 ![Image of the values of best architecture achieved following baseline configurations.](baseline_imageClassification.png)
