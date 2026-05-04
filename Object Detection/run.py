@@ -29,7 +29,7 @@ def get_paths():
 
 # Phase 1 — NAS Controller Search (FPN + Head)
 
-def evaluate_architecture(fpn_arch, head_arch, share_from, paths, n_steps=5):
+def evaluate_architecture(fpn_arch, head_arch, share_from, paths, n_steps=150):
     """Quick proxy evaluation: train for n_steps and return negative loss as reward."""
     model = NASFCOSDetector(fpn_arch, head_arch, share_from=share_from).to(DEVICE)
     opt   = torch.optim.Adam(model.parameters(), lr=8e-4)
@@ -53,7 +53,7 @@ def evaluate_architecture(fpn_arch, head_arch, share_from, paths, n_steps=5):
     return -(total_loss / n_steps)   # higher (less negative) = better
 
 
-def phase1_search(paths, n_archs=10, proxy_steps=5):
+def phase1_search(paths, n_archs=5, proxy_steps=150):
     print("\n--- Phase 1: Controller Search (FPN + Head) ---")
     controller = NASController().to(DEVICE)
     opt = torch.optim.Adam(controller.parameters(), lr=3e-3)
@@ -114,7 +114,7 @@ def full_training(config, paths, n_epochs=12, batch_size=4):
     ds     = COCOFullDataset()
     loader = DataLoader(ds, batch_size=batch_size, collate_fn=coco_full_collate)
 
-    opt       = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.9, weight_decay=1e-4)
+    opt  = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.9, weight_decay=1e-4)
     scheduler = torch.optim.lr_scheduler.MultiStepLR(opt, milestones=[8, 11], gamma=0.1)
 
     log_path = f"{OUT_DIR}/nas_fcos_training_log.csv"
