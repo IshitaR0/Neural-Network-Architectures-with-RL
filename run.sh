@@ -22,6 +22,7 @@ cd "Baseline-simplest"
 python run.py
 echo "Phase 1.1 complete"
 
+echo "Phase 1.2: Image Classification - NAS WITH SKIP."
 cd ..
 cd "nas_with_skip"
 python run.py
