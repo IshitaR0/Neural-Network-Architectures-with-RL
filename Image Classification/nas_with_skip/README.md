@@ -138,6 +138,8 @@ CIFAR-10 is loaded automatically from HuggingFace (`uoft-cs/cifar10`) and split 
 
 ## Results
 This is the result after running for 10 baches of 20 epochs each:
+<img width="1507" height="427" alt="image" src="https://github.com/user-attachments/assets/4422cf74-07a7-48bd-b38e-4ce7d8d1102d" />
+
 <img width="365" height="38" alt="image" src="https://github.com/user-attachments/assets/c7474a16-8d84-4962-82cc-1553fc436d78" />
 
 <img width="709" height="48" alt="image" src="https://github.com/user-attachments/assets/d6efc532-2407-41b8-8e1f-10c4bc2cb565" />
