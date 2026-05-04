@@ -28,3 +28,10 @@ cd "nas_with_skip"
 python run.py
 
 echo "Phase 1.2 complete"
+
+echo "Phase 2.0: Object detection - NAS-FCOS."
+cd ../..
+cd "Object Detection"
+python run.py
+
+echo "Phase 2.0 complete"
