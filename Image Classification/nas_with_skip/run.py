@@ -9,8 +9,10 @@ import argparse
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import DataLoader, random_split, Subset
-from torchvision import datasets, transforms
+from torch.utils.data import DataLoader, random_split, Subset, Dataset
+from torchvision import transforms
+from datasets import load_dataset
+from PIL import Image
 
 # ─────────────────────────────────────────────────────────────────────────────
 # OUTPUT DIRS  (relative paths — safe for any clone location)
@@ -42,43 +44,57 @@ eval_transform = transforms.Compose([
     transforms.Normalize(CIFAR10_MEAN, CIFAR10_STD),
 ])
 
+class HFCifar10Dataset(Dataset):
+    """Wraps a HuggingFace CIFAR-10 split into a PyTorch Dataset."""
+    def __init__(self, hf_split, transform=None):
+        self.data = hf_split
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        item = self.data[idx]
+        image = item['img']
+        if not isinstance(image, Image.Image):
+            image = Image.fromarray(image)
+        label = item['label']
+        if self.transform:
+            image = self.transform(image)
+        return image, label
+
 
 def get_dataloaders(
-    data_dir:    str = DATA_DIR,
     batch_size:  int = 128,
     val_size:    int = 5000,
     num_workers: int = 2,
     seed:        int = 42,
+    **kwargs,   # absorbs any extra kwargs like data_dir
 ):
-    full_train_aug  = datasets.CIFAR10(data_dir, train=True,  download=True,
-                                        transform=train_transform)
-    full_train_eval = datasets.CIFAR10(data_dir, train=True,  download=True,
-                                        transform=eval_transform)
-    test_dataset    = datasets.CIFAR10(data_dir, train=False, download=True,
-                                        transform=eval_transform)
+    print("Loading CIFAR-10 from HuggingFace...")
+    hf_dataset = load_dataset("uoft-cs/cifar10")
+
+    full_train_aug  = HFCifar10Dataset(hf_dataset['train'], transform=train_transform)
+    full_train_eval = HFCifar10Dataset(hf_dataset['train'], transform=eval_transform)
+    test_dataset    = HFCifar10Dataset(hf_dataset['test'],  transform=eval_transform)
 
     train_size = len(full_train_aug) - val_size
-
     gen = torch.Generator().manual_seed(seed)
     train_subset, val_subset = random_split(
         full_train_aug, [train_size, val_size], generator=gen
     )
-
     val_subset_eval = Subset(full_train_eval, val_subset.indices)
 
     def make_loader(ds, shuffle):
         return DataLoader(ds, batch_size=batch_size, shuffle=shuffle,
-                          num_workers=num_workers, pin_memory=True)
+                          num_workers=num_workers, pin_memory=False)
 
     train_loader = make_loader(train_subset,    shuffle=True)
     val_loader   = make_loader(val_subset_eval, shuffle=False)
     test_loader  = make_loader(test_dataset,    shuffle=False)
 
-    print(f"Dataset split — "
-          f"Train: {len(train_subset):,}  "
-          f"Val: {len(val_subset_eval):,}  "
-          f"Test: {len(test_dataset):,}")
-
+    print(f"Dataset split — Train: {len(train_subset):,}  "
+          f"Val: {len(val_subset_eval):,}  Test: {len(test_dataset):,}")
     return train_loader, val_loader, test_loader
 
 
