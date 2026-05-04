@@ -92,13 +92,13 @@ pip install torch torchvision datasets pillow matplotlib
 **Run the full NAS search + final test evaluation:**
 
 ```bash
-python nas.py
+python run.py
 ```
 
 **Run the search only (skip final test retraining):**
 
 ```bash
-python nas.py --skip-test
+python run.py --skip-test
 ```
 
 ---
@@ -174,10 +174,6 @@ This is the result after running for 10 baches of 20 epochs each:
 
 <img width="709" height="48" alt="image" src="https://github.com/user-attachments/assets/d6efc532-2407-41b8-8e1f-10c4bc2cb565" />
 
-
-## Reference
-
-> Zoph, B., & Le, Q. V. (2017). *Neural Architecture Search with Reinforcement Learning*. ICLR 2017. [arXiv:1611.01578](https://arxiv.org/abs/1611.01578)
 
 ## How It Works
 run `Bash run.sh`
