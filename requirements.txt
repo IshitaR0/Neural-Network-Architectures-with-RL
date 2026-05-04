@@ -34,7 +34,9 @@ packaging==26.2
 pandas==3.0.2
 pillow==12.2.0
 propcache==0.4.1
+psutil==5.9.0
 pyarrow==24.0.0
+pycocotools==2.0.6
 Pygments==2.20.0
 python-dateutil==2.9.0.post0
 PyYAML==6.0.3
