@@ -18,6 +18,12 @@ echo "Phase 1.1: Image Classification - Baseline Testing."
 cd "Image Classification"
 cd "Baseline-simplest"
 
+
+python run.py
+echo "Phase 1.1 complete"
+
+cd ..
+cd "nas_with_skip"
 python run.py
 
-echo "Phase 1.1 complete"
+echo "Phase 1.2 complete"
