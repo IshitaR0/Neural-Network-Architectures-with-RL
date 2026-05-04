@@ -15,7 +15,7 @@ from datasets import load_dataset
 from PIL import Image
 
 # ─────────────────────────────────────────────────────────────────────────────
-# OUTPUT DIRS  (relative paths — safe for any clone location)
+# OUTPUT DIRS  
 # ─────────────────────────────────────────────────────────────────────────────
 SCRIPT_DIR  = os.path.dirname(os.path.abspath(__file__))
 RESULTS_DIR = os.path.join(SCRIPT_DIR, "results")
@@ -445,7 +445,7 @@ CONFIG = {
     "controller_lr":         0.0006,
     "num_batches":           10,
     "m":                     5,
-    "child_epochs":          20,
+    "child_epochs":          20, #paper uses 50
     "batch_size":            128,
     "baseline_decay":        0.95,
     "entropy_coeff":         0.0001,
